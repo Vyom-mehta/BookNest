@@ -18,70 +18,6 @@ interface Book {
   description: string;
 }
 
-// Sample book data with categories
-const sampleBooks: Book[] = [
-  {
-    title: "The Great Gatsby",
-    author: "F. Scott Fitzgerald",
-    genre: "Classic Literature",
-    category: "Fiction",
-    rating: 4.2,
-    image:
-      "https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1",
-    price: "$12.99",
-    description:
-      "A classic American novel set in the Jazz Age, exploring themes of wealth, love, idealism, and moral decay in the American Dream.",
-  },
-  {
-    title: "To Kill a Mockingbird",
-    author: "Harper Lee",
-    genre: "Southern Gothic",
-    category: "Fiction",
-    rating: 4.5,
-    image:
-      "https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1",
-    price: "$14.99",
-    description:
-      "A gripping tale of racial injustice and childhood innocence in the American South, told through the eyes of young Scout Finch.",
-  },
-  {
-    title: "1984",
-    author: "George Orwell",
-    genre: "Dystopian Fiction",
-    category: "Sci-Fi",
-    rating: 4.8,
-    image:
-      "https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1",
-    price: "$13.99",
-    description:
-      "A dystopian masterpiece about totalitarian control, surveillance, and the power of language in shaping reality and thought.",
-  },
-  {
-    title: "Pride and Prejudice",
-    author: "Jane Austen",
-    genre: "Romantic Fiction",
-    category: "Romance",
-    rating: 5,
-    image:
-      "https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1",
-    price: "$11.99",
-    description:
-      "A witty and romantic novel about Elizabeth Bennet and Mr. Darcy, exploring themes of love, class, and social expectations.",
-  },
-  {
-    title: "The Catcher in the Rye",
-    author: "J.D. Salinger",
-    genre: "Coming-of-age Fiction",
-    category: "Fiction",
-    rating: 3.9,
-    image:
-      "https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1",
-    price: "$10.99",
-    description:
-      "A controversial coming-of-age story following teenager Holden Caulfield as he navigates alienation and identity in New York City.",
-  },
-];
-
 // Available categories
 const categories = [
   "All",
@@ -96,8 +32,8 @@ const categories = [
 ];
 
 const BookPage: React.FC = () => {
-  const [books] = useState<Book[]>(sampleBooks);
-  const [filteredBooks, setFilteredBooks] = useState<Book[]>(sampleBooks);
+  const [books, setBooks] = useState<Book[]>([]);
+  const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedRating, setSelectedRating] = useState<number>(1.0);
   const [showFilters, setShowFilters] = useState<boolean>(true);
@@ -105,19 +41,45 @@ const BookPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Filter books based on category and rating
+  // useEffect(() => {
+  //   let result = books;
+
+  //   // Apply category filter
+  //   if (selectedCategory !== "All") {
+  //     result = result.filter((book) => book.category === selectedCategory);
+  //   }
+
+  //   // Apply rating filter
+  //   result = result.filter((book) => book.rating >= selectedRating);
+
+  //   setFilteredBooks(result);
+  // }, [selectedCategory, selectedRating, books]);
+
   useEffect(() => {
-    let result = books;
+    getBooks();
+  }, [selectedCategory, selectedRating]);
 
-    // Apply category filter
-    if (selectedCategory !== "All") {
-      result = result.filter((book) => book.category === selectedCategory);
+  const getBooks = async () => {
+    try {
+      const res: any = await fetch(
+        `http://localhost:5000/book/list?category=${selectedCategory}&rating=${selectedRating}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+      console.log("data : ", data);
+
+      setFilteredBooks(data);
+    } catch {
+      console.log("error getting books details");
     }
-
-    // Apply rating filter
-    result = result.filter((book) => book.rating >= selectedRating);
-
-    setFilteredBooks(result);
-  }, [selectedCategory, selectedRating, books]);
+  };
 
   // Handle category change
   const handleCategoryChange = (category: string) => {
@@ -175,7 +137,6 @@ const BookPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Filter Toggle */}
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={() => setShowFilters(!showFilters)}

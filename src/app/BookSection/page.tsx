@@ -1,89 +1,44 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BookCard from "../../Components/BookCard/BookCard";
 import BookModal from "../../Components/BookDetailModel/page";
 import { Sparkles, TrendingUp } from "lucide-react";
-
-const initialBooks = [
-  {
-    title: "The Great Gatsby",
-    author: "F. Scott Fitzgerald",
-    genre: "Classic",
-    rating: 4.2,
-    image:
-      "https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1",
-    price: "$12.99",
-    description:
-      "A timeless American classic that explores themes of wealth, love, and the American Dream. Set in the summer of 1922, the story follows Nick Carraway as he becomes neighbors with the mysterious Jay Gatsby, who throws lavish parties in hopes of winning back his lost love, Daisy Buchanan. A profound meditation on the decadence and disillusion of the Jazz Age.",
-  },
-  {
-    title: "To Kill a Mockingbird",
-    author: "Harper Lee",
-    genre: "Fiction",
-    rating: 4.5,
-    image:
-      "https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1",
-    price: "$14.99",
-    description:
-      "A powerful story of racial injustice and childhood innocence set in 1930s Alabama. Through the eyes of young Scout Finch, we witness her father Atticus defending a Black man falsely accused of rape. This Pulitzer Prize-winning novel addresses themes of moral courage, prejudice, and the loss of innocence with profound sensitivity and insight.",
-  },
-  {
-    title: "1984",
-    author: "George Orwell",
-    genre: "Dystopian",
-    rating: 4.8,
-    image:
-      "https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1",
-    price: "$13.99",
-    description:
-      "A chilling dystopian masterpiece that depicts a totalitarian society under the control of Big Brother. Winston Smith works for the Party, rewriting history, until he begins to question the system. Orwell's prophetic vision explores surveillance, propaganda, and the manipulation of truth in ways that remain startlingly relevant today.",
-  },
-  {
-    title: "Pride and Prejudice",
-    author: "Jane Austen",
-    genre: "Romance",
-    rating: 5,
-    image:
-      "https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1",
-    price: "$11.99",
-    description:
-      "A brilliant romantic comedy that follows the complex relationship between Elizabeth Bennet and the proud Mr. Darcy. Set in Georgian England, this novel masterfully explores themes of love, marriage, social class, and personal growth. Austen's wit and insight into human nature make this a enduring favorite that continues to captivate readers worldwide.",
-  },
-  {
-    title: "The Catcher in the Rye",
-    author: "J.D. Salinger",
-    genre: "Coming-of-age",
-    rating: 3.9,
-    image:
-      "https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1",
-    price: "$10.99",
-    description:
-      "A controversial and influential coming-of-age story narrated by the cynical teenager Holden Caulfield. After being expelled from prep school, Holden wanders through New York City, struggling with depression, alienation, and his transition to adulthood. Salinger's authentic voice and exploration of teenage angst has resonated with generations of readers.",
-  },
-  {
-    title: "Lord of the Flies",
-    author: "William Golding",
-    genre: "Adventure",
-    rating: 4.1,
-    image:
-      "https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1",
-    price: "$12.49",
-    description:
-      "A haunting allegory about civilization and human nature. When a group of British boys are stranded on a deserted island, their attempts at self-governance quickly deteriorate into chaos and savagery. Golding's Nobel Prize-winning novel is a dark exploration of the thin line between civilization and barbarism, making it a powerful commentary on human nature.",
-  },
-];
+import { log } from "console";
 
 export default function BookGrid() {
-  const [displayedBooks, setDisplayedBooks] = useState(initialBooks);
+  const [displayedBooks, setDisplayedBooks] = useState([]);
   const [showingAll, setShowingAll] = useState(false);
   /*  Initializes isLoading state to track the loading state of the "Load More" button. */
   const [isLoading, setIsLoading] = useState(false);
 
   // Modal state
   const [selectedBook, setSelectedBook] = useState<
-    (typeof initialBooks)[0] | null
+    (typeof displayedBooks)[0] | null
   >(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    getBooks();
+  }, []);
+
+  const getBooks = async () => {
+    try {
+      const res: any = await fetch("http://localhost:5000/book/list", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      const data = await res.json();
+      console.log("data : ", data);
+
+      setDisplayedBooks(data);
+    } catch {
+      console.log("error getting books details");
+    }
+  };
 
   const handleViewAllBooks = async () => {
     setIsLoading(true);
@@ -92,9 +47,9 @@ export default function BookGrid() {
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     if (showingAll) {
-      setDisplayedBooks([...displayedBooks, ...initialBooks]);
+      setDisplayedBooks([...displayedBooks]);
     } else {
-      setDisplayedBooks([...initialBooks, ...initialBooks]);
+      setDisplayedBooks([...displayedBooks, ...displayedBooks]);
       setShowingAll(true);
     }
 
@@ -173,51 +128,7 @@ export default function BookGrid() {
           {/* Books Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-16">
             {displayedBooks.map((book, index) => (
-              <div
-                key={`${book.title}-${index}`}
-
-                /*  Right now, you're telling the browser:
-
-              "Delay some animation, then keep its final state."
-
-              Problem: since animate-fade-in isn't defined, there's no animation to delay.
-
-              Result: nothing visibly animates — cards just "exist" immediately. */
-
-                // className="animate-fade-in"
-                // style={{
-                //   animationDelay: `${(index % 8) * 100}ms`,
-                //   animationFillMode: "both",
-                // }}
-              >
-                {/*
-                    SPREAD OPERETOR
-                    
-                    const book = {
-
-                    title: "The Alchemist",
-                    author: "Paulo Coelho",
-                    year: 1988,
-                  };
-
-                  Then this:
-                  <BookCard {...book} />
-
-                is the same as writing:
-                <BookCard title="The Alchemist" author="Paulo Coelho" year={1988} />
-
-                So inside BookCard, you could access:
-
-                function BookCard({ title, author, year }) {
-                  return (
-                    <div>
-                      <h2>{title}</h2>
-                      <p>{author}</p>
-                      <span>{year}</span>
-                    </div>
-                  );
-                } */}
-
+              <div key={`}-${index}`}>
                 <BookCard {...book} onBookClick={handleBookClick} />
               </div>
             ))}
@@ -276,6 +187,7 @@ export default function BookGrid() {
       <BookModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
+        // book={selectedBook}
         book={selectedBook}
       />
     </div>

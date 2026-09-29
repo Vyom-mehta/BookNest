@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import AddBookForm from "../../Components/AdminActions/AddBook/page";
 import UpdateBookForm from "../../Components/AdminActions/UpdateBook/page";
 import DeleteBookForm from "../../Components/AdminActions/DeleteBook/page";
@@ -26,11 +26,11 @@ import {
 function App() {
   const [activeTab, setActiveTab] = useState("overview");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [recentBooks, setRecentBooks] = useState([]);
   const [showUpdateForm, setShowUpdateForm] = useState(false);
   const [showDeleteForm, setShowDeleteForm] = useState(false);
   /* Declares a state variable showLogoutMenu to toggle the visibility of a logout dropdown menu, initialized to false */
   const [showLogoutMenu, setShowLogoutMenu] = useState(false);
-
   const router = useRouter();
 
   const handleLogout = (e) => {
@@ -57,7 +57,7 @@ function App() {
   const stats = [
     {
       label: "Total Books",
-      value: "2,847",
+      value: recentBooks.length,
       icon: Book,
       color: "from-purple-400 to-purple-600",
     },
@@ -81,43 +81,27 @@ function App() {
     },
   ];
 
-  const recentBooks = [
-    {
-      id: 1,
-      title: "The Midnight Library",
-      author: "Matt Haig",
-      status: "Published",
-      rating: 4.8,
-    },
-    {
-      id: 2,
-      title: "Atomic Habits",
-      author: "James Clear",
-      status: "Draft",
-      rating: 4.9,
-    },
-    {
-      id: 3,
-      title: "The Seven Husbands",
-      author: "Taylor Jenkins Reid",
-      status: "Published",
-      rating: 4.7,
-    },
-    {
-      id: 4,
-      title: "Dune",
-      author: "Frank Herbert",
-      status: "Published",
-      rating: 4.6,
-    },
-    {
-      id: 5,
-      title: "Project Hail Mary",
-      author: "Andy Weir",
-      status: "Review",
-      rating: 4.8,
-    },
-  ];
+  useEffect(() => {
+    getBooks();
+  }, []);
+
+  const getBooks = async () => {
+    try {
+      const res: any = await fetch("http://localhost:5000/book/list", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      const data = await res.json();
+      console.log("data : ", data);
+      setRecentBooks(data);
+    } catch {
+      console.log("error getting books details");
+    }
+  };
 
   return (
     /* min-h-screen: Sets the minimum height to the full viewport height.
@@ -357,9 +341,7 @@ function App() {
                     <th className="text-left py-4 px-6 text-slate-300 font-semibold">
                       Author
                     </th>
-                    <th className="text-left py-4 px-6 text-slate-300 font-semibold">
-                      Status
-                    </th>
+
                     <th className="text-left py-4 px-6 text-slate-300 font-semibold">
                       Rating
                     </th>
@@ -386,7 +368,7 @@ function App() {
                       <td className="py-4 px-6">
                         <div className="text-slate-300">{book.author}</div>
                       </td>
-                      <td className="py-4 px-6">
+                      {/* <td className="py-4 px-6">
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium ${
                             book.status === "Published"
@@ -398,7 +380,7 @@ function App() {
                         >
                           {book.status}
                         </span>
-                      </td>
+                      </td> */}
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-1">
                           <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />

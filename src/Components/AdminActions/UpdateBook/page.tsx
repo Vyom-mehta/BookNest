@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X, Save, Edit3 } from "lucide-react";
+import toast from "react-hot-toast";
 
 interface UpdateBookFormProps {
   onClose: () => void;
@@ -17,33 +18,75 @@ const UpdateBookForm: React.FC<UpdateBookFormProps> = ({ onClose }) => {
     description: "",
   });
 
-  // Dummy book data for selection
-  const books = [
-    { id: "1", title: "The Midnight Library", author: "Matt Haig" },
-    { id: "2", title: "Atomic Habits", author: "James Clear" },
-    { id: "3", title: "The Seven Husbands", author: "Taylor Jenkins Reid" },
-    { id: "4", title: "Dune", author: "Frank Herbert" },
-    { id: "5", title: "Project Hail Mary", author: "Andy Weir" },
-  ];
+  const [books, setBooks] = useState([]);
+
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/book/list", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        const data = await res.json();
+        setBooks(data);
+      } catch {
+        toast.error("Failed to load books");
+      }
+    };
+    fetchBooks();
+  }, []);
+
+  // const handleBookSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   const bookId = e.target.value;
+  //   setSelectedBook(bookId);
+
+  //   // Load book data when selected (dummy data)
+  //   if (bookId) {
+  //     const book = books.find((b) => b.id === bookId);
+  //     if (book) {
+  //       setFormData({
+  //         title: book.title,
+  //         author: book.author,
+  //         genre: "Fiction",
+  //         rating: "4.5",
+  //         image:
+  //           "https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg",
+  //         price: "19.99",
+  //         description:
+  //           "A captivating story that will keep you engaged from start to finish.",
+  //       });
+  //     }
+  //   } else {
+  //     setFormData({
+  //       title: "",
+  //       author: "",
+  //       genre: "",
+  //       rating: "",
+  //       image: "",
+  //       price: "",
+  //       description: "",
+  //     });
+  //   }
+  // };
 
   const handleBookSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const bookId = e.target.value;
+    console.log("bookId : ", bookId);
+
     setSelectedBook(bookId);
 
-    // Load book data when selected (dummy data)
     if (bookId) {
-      const book = books.find((b) => b.id === bookId);
+      const book = books.find((b) => b._id === bookId); // _id for MongoDB
       if (book) {
         setFormData({
           title: book.title,
           author: book.author,
-          genre: "Fiction",
-          rating: "4.5",
-          image:
-            "https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg",
-          price: "19.99",
-          description:
-            "A captivating story that will keep you engaged from start to finish.",
+          genre: book.category,
+          rating: book.rating,
+          image: book.image,
+          price: book.price,
+          description: book.description,
         });
       }
     } else {
@@ -71,11 +114,45 @@ const UpdateBookForm: React.FC<UpdateBookFormProps> = ({ onClose }) => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // const handleSubmit = (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   console.log("Updating book:", selectedBook, formData);
+  //   // Update book logic here
+  //   onClose();
+  // };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Updating book:", selectedBook, formData);
-    // Update book logic here
-    onClose();
+
+    const { genre, ...rest } = formData;
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/book/${selectedBook}/save`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            ...rest,
+            price: parseFloat(formData.price),
+            category: genre,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        toast.error("Failed to update book");
+        return;
+      }
+
+      toast.success("Book updated successfully");
+      onClose();
+    } catch {
+      toast.error("Failed to update book");
+    }
   };
 
   return (
@@ -108,7 +185,11 @@ const UpdateBookForm: React.FC<UpdateBookFormProps> = ({ onClose }) => {
                 Choose a book to update
               </option>
               {books.map((book) => (
-                <option key={book.id} value={book.id} className="bg-slate-800">
+                <option
+                  key={book._id}
+                  value={book._id}
+                  className="bg-slate-800"
+                >
                   {book.title} - {book.author}
                 </option>
               ))}

@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 function LoginPage() {
   const router = useRouter();
@@ -58,17 +59,58 @@ function LoginPage() {
     }));
   };
 
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setIsLoading(true);
+
+  //   // Simulate login process
+  //   await new Promise((resolve) => setTimeout(resolve, 1500));
+
+  //   console.log("Login attempt:", formData);
+  //   setIsLoading(false);
+
+  //   router.push("/Home");
+  // };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate login process
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
 
-    console.log("Login attempt:", formData);
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("Login successful");
+
+        //  // 🔥 store token
+        localStorage.setItem("token", data.token);
+
+        if (data?.user?.role == "admin") {
+          router.push("/AdminDashboard");
+          return;
+        }
+
+        router.push("/Home");
+      } else {
+        toast.error(data.error || "Login failed ❌");
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Server error");
+    }
+
     setIsLoading(false);
-
-    router.push("/Home");
   };
 
   return (
@@ -98,8 +140,6 @@ function LoginPage() {
           style={{ backgroundColor: "#FFD93D20", borderColor: "#FFD93D40" }}
         >
           <div className="text-center mb-8">
-           
-
             <div
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-sm border mb-4"
               style={{
@@ -124,7 +164,7 @@ function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <label
                 htmlFor="studentName"
                 className="text-sm font-medium"
@@ -157,38 +197,7 @@ function LoginPage() {
                   placeholder="Enter your full name"
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <label
-                htmlFor="studentId"
-                className="text-sm font-medium"
-                style={{ color: "#4F200D" }}
-              >
-                Student ID
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <IdCard className="h-5 w-5" style={{ color: "#4F200D60" }} />
-                </div>
-                <input
-                  id="studentId"
-                  name="studentId"
-                  type="text"
-                  required
-                  autoComplete="username"
-                  value={formData.studentId}
-                  onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-3 backdrop-blur-sm border rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:border-transparent"
-                  style={{
-                    backgroundColor: "#FFD93D20",
-                    borderColor: "#FFD93D40",
-                    color: "#4F200D",
-                  }}
-                  placeholder="Enter your student ID"
-                />
-              </div>
-            </div>
+            </div> */}
 
             <div className="space-y-2">
               <label

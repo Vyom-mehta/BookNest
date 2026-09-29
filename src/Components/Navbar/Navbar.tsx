@@ -1,4 +1,3 @@
-
 "use client";
 import { Search, Menu, X, BookOpen, User, Heart, UserPlus } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -14,9 +13,23 @@ export default function Navbar() {
   // Update favorites count
   /* Sets up a useEffect hook to run side effects when the component mounts or updates */
   useEffect(() => {
-    const updateCount = () => {
-      const favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
-      setFavoritesCount(favorites.length);
+    const updateCount = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/user/profile`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+
+        const data = await res.json();
+
+        const favorites = data.favorites.length;
+        console.log("user favorites : ", favorites);
+
+        setFavoritesCount(favorites);
+      } catch (error) {
+        console.log(error);
+      }
     };
 
     updateCount();
@@ -38,7 +51,7 @@ export default function Navbar() {
       Without this, your navbar in Tab B would show stale data until you refreshed 
 
     */
-    window.addEventListener("storage", updateCount);
+    // window.addEventListener("storage", updateCount);
 
     /* "favoritesUpdated" listens for a custom event triggered when favorites are updated in the same tab. explaination : 
     
@@ -278,12 +291,14 @@ export default function Navbar() {
                     style={{ color: "#4F200D80" }}
                     onMouseEnter={(e) => (e.target.style.color = "#FFD93D")}
                     onMouseLeave={(e) => (e.target.style.color = "#4F200D80")}
+                    onClick={() => {
+                      router.push("favorites");
+                    }}
                   >
                     <Heart className="h-5 w-5" />
                     <span>Favorites ({favoritesCount})</span>
                   </button>
 
-                  {/* transition-colors : whenever a color-related property changes (like color, background-color, border-color, fill, stroke), don't snap instantly—animate smoothly instead.*/}
                   <button
                     className="flex items-center gap-2 transition-colors"
                     style={{ color: "#4F200D80" }}

@@ -1,12 +1,15 @@
-// new theme 
+// new theme
+import { log } from "console";
 import { Star, Heart, BookOpen, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 
 // BookCardProps → defines the data the card expects.
 interface BookCardProps {
+  _id: string;
   title: string;
   author: string;
-  genre: string;
+  category: string;
   rating: number;
   image: string;
   price: string;
@@ -16,9 +19,10 @@ interface BookCardProps {
 
 // Defines the BookCard component, destructuring the props.
 export default function BookCard({
+  _id,
   title,
   author,
-  genre,
+  category,
   rating,
   image,
   price,
@@ -30,78 +34,121 @@ export default function BookCard({
   // isHovered: used for animations like star delay.
   const [isHovered, setIsHovered] = useState(false);
 
-  /* 
-    React runs the code inside this effect:
+  const book = {
+    _id,
+    title,
+    author,
+    category,
+    rating,
+    image,
+    price,
+    description,
+  };
 
-    right after the component appears on the screen
+  // useEffect(() => {
+  //   const favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
+  //   setIsFavorite(favorites.some((fav: any) => fav.title === title));
+  // }, [title]);
 
-    and every time the book's title changes.
-    So this effect is basically: "Whenever the title changes, check if that title is in favorites."
+  // const toggleFavorite = (e: React.MouseEvent) => {
+  //   e.stopPropagation(); // Prevent card click when clicking heart
+  //   const favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
+  //   const book = { title, author, category, rating, image, price, description };
 
+  //   /*
+  //   If the book is already a favorite:
+  //        favorites.filter(...) → removes this book from the list.
 
+  //         E.g., if favorites had ["1984", "The Hobbit"] and this card is "The Hobbit", after filter → ["1984"].
 
+  //         Save that new list back into localStorage.
 
-    favorites.some((fav: any) => fav.title === title)
+  //         Update React state (setIsFavorite(false) → makes the heart unfilled).
 
-    .some checks if at least one item in the array matches the condition.
+  //         Tell the rest of the app something changed:
 
-    Condition here: fav.title === title
-    → Does the saved favorite's title equal this card's title?
+  //         window.dispatchEvent(new Event("favoritesUpdated"));
 
-    If yes → returns true.
+  //         → That event can be listened to by other components (like a "Favorites" page) so they refresh automatically.
 
-    If no → returns false.
+  //   */
+  //   if (isFavorite) {
+  //     const updatedFavorites = favorites.filter(
+  //       (fav: any) => fav.title !== title
+  //     );
+  //     localStorage.setItem("favorites", JSON.stringify(updatedFavorites));
+  //     setIsFavorite(false);
+  //     window.dispatchEvent(new Event("favoritesUpdated"));
+  //   } else {
+  //     const updatedFavorites = [...favorites, book];
+  //     localStorage.setItem("favorites", JSON.stringify(updatedFavorites));
+  //     setIsFavorite(true);
+  //     window.dispatchEvent(new Event("favoritesUpdated"));
+  //   }
+  // };
 
-*/
+  // Handle card click to open modal
+
   useEffect(() => {
-    const favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
-    setIsFavorite(favorites.some((fav: any) => fav.title === title));
-  }, [title]);
+    const checkFavorite = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/user/profile`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
 
-  const toggleFavorite = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click when clicking heart
-    const favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
-    const book = { title, author, genre, rating, image, price, description };
+        const data = await res.json();
+        console.log("data : ", data);
 
-    /* 
-    If the book is already a favorite:
-         favorites.filter(...) → removes this book from the list.
+        const isFav = data.favorites.some((id: string) => id === _id);
+        setIsFavorite(isFav);
+      } catch (error) {
+        console.log(error);
+      }
+    };
 
-          E.g., if favorites had ["1984", "The Hobbit"] and this card is "The Hobbit", after filter → ["1984"].
+    checkFavorite();
+  }, [_id]);
 
-          Save that new list back into localStorage.
+  const toggleFavorite = async (e) => {
+    e.stopPropagation();
+    if (!book?._id) return;
 
-          Update React state (setIsFavorite(false) → makes the heart unfilled).
-
-          Tell the rest of the app something changed:
-
-          window.dispatchEvent(new Event("favoritesUpdated"));
-
-
-          → That event can be listened to by other components (like a "Favorites" page) so they refresh automatically.
-    
-    */
-    if (isFavorite) {
-      const updatedFavorites = favorites.filter(
-        (fav: any) => fav.title !== title
+    try {
+      const res = await fetch(
+        `http://localhost:5000/book/favorite/toggle/${book._id}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
       );
-      localStorage.setItem("favorites", JSON.stringify(updatedFavorites));
-      setIsFavorite(false);
+      // 🔥 ADD THIS
       window.dispatchEvent(new Event("favoritesUpdated"));
-    } else {
-      const updatedFavorites = [...favorites, book];
-      localStorage.setItem("favorites", JSON.stringify(updatedFavorites));
-      setIsFavorite(true);
-      window.dispatchEvent(new Event("favoritesUpdated"));
+
+      const data = await res.json();
+      toast.success(data?.message);
+
+      // ✅ OPTION 1: Based on message
+      if (data.message === "Added to favorites") {
+        setIsFavorite(true);
+      } else {
+        setIsFavorite(false);
+      }
+
+      console.log("favorite response:", data);
+    } catch (error) {
+      console.log("error toggling favorite", error);
     }
   };
 
-  // Handle card click to open modal
   const handleCardClick = () => {
-    onBookClick({ title, author, genre, rating, image, price, description, onBookClick });
+    onBookClick(book);
   };
 
-  const getGenreColor = (genre: string) => {
+  const getGenreColor = (category: string) => {
     const colors = {
       Classic: "from-amber-400 to-orange-500",
       Fiction: "from-blue-400 to-cyan-500",
@@ -110,7 +157,9 @@ export default function BookCard({
       "Coming-of-age": "from-green-400 to-emerald-500",
       Adventure: "from-purple-500 to-violet-600",
     };
-    return colors[genre as keyof typeof colors] || "from-gray-400 to-gray-500";
+    return (
+      colors[category as keyof typeof colors] || "from-gray-400 to-gray-500"
+    );
   };
 
   return (
@@ -177,15 +226,15 @@ export default function BookCard({
             </button>
           </div>
 
-          {/* Genre badge - only show on hover */}
+          {/* category badge - only show on hover */}
           <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
             <span
               className={`px-3 py-1 text-xs font-semibold rounded-full bg-gradient-to-r ${getGenreColor(
-                genre
+                category
               )} shadow-lg`}
               style={{ color: "white" }}
             >
-              {genre}
+              {category}
             </span>
           </div>
         </div>
@@ -243,7 +292,8 @@ export default function BookCard({
                 e.currentTarget.style.boxShadow = "0 10px 25px -5px #FFD93D40";
               }}
               onClick={(e) => {
-                e.stopPropagation(); // Prevent card click when clicking button
+                e.stopPropagation();
+                onBookClick(book);
               }}
             >
               <div
@@ -251,7 +301,6 @@ export default function BookCard({
                 style={{ backgroundColor: "#4F200D20" }}
               ></div>
               <div className="relative flex items-center gap-2">
-                {/* <Zap className="h-4 w-4 transition-transform group-hover/btn:rotate-12" /> */}
                 <span>Read Now</span>
               </div>
             </button>
@@ -261,25 +310,13 @@ export default function BookCard({
         {/* Bottom glow line */}
         <div
           className={`h-1 bg-gradient-to-r ${getGenreColor(
-            genre
+            category
           )} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
         ></div>
       </div>
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*  FLOW OF THE TOGGLE FAVORITE  +  EXAMPLE
 

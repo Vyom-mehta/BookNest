@@ -1,3 +1,4 @@
+import { log } from "console";
 import {
   X,
   Star,
@@ -9,12 +10,14 @@ import {
   DollarSign,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 
 // BookModalProps → defines the data the modal expects
 interface BookModalProps {
   isOpen: boolean;
   onClose: () => void;
   book: {
+    _id: string;
     title: string;
     author: string;
     genre: string;
@@ -28,6 +31,38 @@ interface BookModalProps {
 export default function BookModal({ isOpen, onClose, book }: BookModalProps) {
   // isFavorite: tracks whether the book is saved in favorites
   const [isFavorite, setIsFavorite] = useState(false);
+
+  console.log("book : ", book);
+
+  useEffect(() => {
+    const init = async () => {
+      await getBookDetail();
+    };
+    init();
+  }, [book]);
+
+  const [bookDetail, setBookDetail] = useState<any>({});
+
+  const getBookDetail = async () => {
+    if (!book?._id) return;
+    console.log("book detail api called ");
+
+    try {
+      const res = await fetch(`http://localhost:5000/book/${book._id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      const data = await res.json();
+
+      console.log("data : ", data);
+
+      setBookDetail(data);
+    } catch (error) {
+      console.log("error fetching book detail", error);
+    }
+  };
 
   // Close modal with Escape key
   useEffect(() => {
@@ -51,29 +86,80 @@ export default function BookModal({ isOpen, onClose, book }: BookModalProps) {
 
   // Check if book is in favorites when modal opens
   useEffect(() => {
-    if (book) {
-      const favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
-      setIsFavorite(favorites.some((fav: any) => fav.title === book.title));
-    }
+    // if (book) {
+    //   const favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
+    //   setIsFavorite(favorites.some((fav: any) => fav._id === book._id));
+    // }
+
+    const checkFavorite = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/user/profile`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+
+        const data = await res.json();
+        console.log("data : ", data);
+
+        const isFav = data.favorites.some((id: string) => id === book?._id);
+        setIsFavorite(isFav);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    checkFavorite();
   }, [book]);
 
-  const toggleFavorite = () => {
-    if (!book) return;
+  // const toggleFavorite = () => {
+  //   if (!book) return;
 
-    const favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
+  //   const favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
 
-    if (isFavorite) {
-      const updatedFavorites = favorites.filter(
-        (fav: any) => fav.title !== book.title
+  //   if (isFavorite) {
+  //     const updatedFavorites = favorites.filter(
+  //       (fav: any) => fav.title !== book.title
+  //     );
+  //     localStorage.setItem("favorites", JSON.stringify(updatedFavorites));
+  //     setIsFavorite(false);
+  //     window.dispatchEvent(new Event("favoritesUpdated"));
+  //   } else {
+  //     const updatedFavorites = [...favorites, book];
+  //     localStorage.setItem("favorites", JSON.stringify(updatedFavorites));
+  //     setIsFavorite(true);
+  //     window.dispatchEvent(new Event("favoritesUpdated"));
+  //   }
+  // };
+
+  const toggleFavorite = async () => {
+    if (!book?._id) return;
+
+    try {
+      const res = await fetch(
+        `http://localhost:5000/book/favorite/toggle/${book._id}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
       );
-      localStorage.setItem("favorites", JSON.stringify(updatedFavorites));
-      setIsFavorite(false);
+
+      // 🔥 ADD THIS
       window.dispatchEvent(new Event("favoritesUpdated"));
-    } else {
-      const updatedFavorites = [...favorites, book];
-      localStorage.setItem("favorites", JSON.stringify(updatedFavorites));
-      setIsFavorite(true);
-      window.dispatchEvent(new Event("favoritesUpdated"));
+
+      const data = await res.json();
+      toast.success(data?.message);
+
+      if (data.message === "Added to favorites") {
+        setIsFavorite(true);
+      } else {
+        setIsFavorite(false);
+      }
+
+      console.log("favorite response:", data);
+    } catch (error) {
+      console.log("error toggling favorite", error);
     }
   };
 
@@ -140,8 +226,8 @@ export default function BookModal({ isOpen, onClose, book }: BookModalProps) {
             <div className="relative">
               <div className="relative overflow-hidden rounded-2xl">
                 <img
-                  src={book.image}
-                  alt={book.title}
+                  src={bookDetail?.image}
+                  alt={bookDetail.title}
                   className="w-full h-96 md:h-full object-cover"
                 />
 
@@ -152,12 +238,12 @@ export default function BookModal({ isOpen, onClose, book }: BookModalProps) {
                 <div className="absolute top-4 left-4">
                   <span
                     className={`px-3 py-1 text-sm font-semibold rounded-full bg-gradient-to-r ${getGenreColor(
-                      book.genre
+                      bookDetail.category
                     )} shadow-lg`}
                     style={{ color: "white" }}
                   >
                     <Tag className="inline w-3 h-3 mr-1" />
-                    {book.genre}
+                    {bookDetail.category}
                   </span>
                 </div>
 
@@ -194,14 +280,14 @@ export default function BookModal({ isOpen, onClose, book }: BookModalProps) {
                   className="text-3xl md:text-4xl font-bold mb-3 leading-tight"
                   style={{ color: "#4F200D" }}
                 >
-                  {book.title}
+                  {bookDetail.title}
                 </h1>
                 <div
                   className="flex items-center gap-2 text-lg"
                   style={{ color: "#4F200D80" }}
                 >
                   <User className="w-4 h-4" />
-                  <span>by {book.author}</span>
+                  <span>by {bookDetail.author}</span>
                 </div>
               </div>
 
@@ -212,11 +298,13 @@ export default function BookModal({ isOpen, onClose, book }: BookModalProps) {
                     <Star
                       key={i}
                       className={`h-5 w-5 ${
-                        i < Math.floor(book.rating) ? "fill-current" : ""
+                        i < Math.floor(bookDetail.rating) ? "fill-current" : ""
                       }`}
                       style={{
                         color:
-                          i < Math.floor(book.rating) ? "#FFD93D" : "#4F200D40",
+                          i < Math.floor(bookDetail.rating)
+                            ? "#FFD93D"
+                            : "#4F200D40",
                       }}
                     />
                   ))}
@@ -225,7 +313,7 @@ export default function BookModal({ isOpen, onClose, book }: BookModalProps) {
                   className="text-lg font-semibold"
                   style={{ color: "#4F200D" }}
                 >
-                  {book.rating}
+                  {bookDetail.rating}
                 </span>
                 <span className="text-sm" style={{ color: "#4F200D60" }}>
                   out of 5
@@ -242,7 +330,7 @@ export default function BookModal({ isOpen, onClose, book }: BookModalProps) {
                   className="text-3xl font-bold"
                   style={{ color: "#4F200D" }}
                 >
-                  {book.price}
+                  {bookDetail.price}
                 </span>
               </div>
 
@@ -264,7 +352,7 @@ export default function BookModal({ isOpen, onClose, book }: BookModalProps) {
                   className="text-base leading-relaxed"
                   style={{ color: "#4F200D80" }}
                 >
-                  {book.description}
+                  {bookDetail.description}
                 </p>
               </div>
 
@@ -330,7 +418,9 @@ export default function BookModal({ isOpen, onClose, book }: BookModalProps) {
 
           {/* Bottom glow line */}
           <div
-            className={`h-1 bg-gradient-to-r ${getGenreColor(book.genre)}`}
+            className={`h-1 bg-gradient-to-r ${getGenreColor(
+              bookDetail.category
+            )}`}
           ></div>
         </div>
       </div>

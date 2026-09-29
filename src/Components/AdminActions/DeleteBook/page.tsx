@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X, Trash2, AlertTriangle } from "lucide-react";
+import toast from "react-hot-toast";
 
 interface DeleteBookFormProps {
   onClose: () => void;
@@ -9,29 +10,56 @@ const DeleteBookForm: React.FC<DeleteBookFormProps> = ({ onClose }) => {
   const [selectedBook, setSelectedBook] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Dummy book data for selection
-  const books = [
-    { id: "1", title: "The Midnight Library", author: "Matt Haig" },
-    { id: "2", title: "Atomic Habits", author: "James Clear" },
-    { id: "3", title: "The Seven Husbands", author: "Taylor Jenkins Reid" },
-    { id: "4", title: "Dune", author: "Frank Herbert" },
-    { id: "5", title: "Project Hail Mary", author: "Andy Weir" },
-  ];
+  const [books, setBooks] = useState([]);
+
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/book/list", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        const data = await res.json();
+        setBooks(data);
+      } catch {
+        toast.error("Failed to load books");
+      }
+    };
+    fetchBooks();
+  }, []);
 
   const handleBookSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedBook(e.target.value);
     setConfirmDelete(false);
   };
+  const handleDelete = async () => {
+    if (!selectedBook || !confirmDelete) return;
 
-  const handleDelete = () => {
-    if (selectedBook && confirmDelete) {
-      console.log("Deleting book:", selectedBook);
-      // Delete book logic here
+    try {
+      const response = await fetch(
+        `http://localhost:5000/book/delete/${selectedBook}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        toast.error("Failed to delete book");
+        return;
+      }
+
+      toast.success("Book deleted successfully");
       onClose();
+    } catch {
+      toast.error("Failed to delete book");
     }
   };
 
-  const selectedBookData = books.find((book) => book.id === selectedBook);
+  const selectedBookData = books.find((book) => book._id === selectedBook);
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -62,7 +90,11 @@ const DeleteBookForm: React.FC<DeleteBookFormProps> = ({ onClose }) => {
                 Choose a book to delete
               </option>
               {books.map((book) => (
-                <option key={book.id} value={book.id} className="bg-slate-800">
+                <option
+                  key={book._id}
+                  value={book._id}
+                  className="bg-slate-800"
+                >
                   {book.title} - {book.author}
                 </option>
               ))}

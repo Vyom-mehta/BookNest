@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { X, Upload, Save } from "lucide-react";
+import toast from "react-hot-toast";
 
 interface AddBookFormProps {
   onClose: () => void;
@@ -12,6 +13,7 @@ const AddBookForm: React.FC<AddBookFormProps> = ({ onClose }) => {
     genre: "",
     image: "",
     price: "",
+    rating: "",
     description: "",
   });
 
@@ -27,11 +29,43 @@ const AddBookForm: React.FC<AddBookFormProps> = ({ onClose }) => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Adding book:", formData);
-    // Add book logic here
-    onClose();
+    // setLoading(true);
+    // setError(null);
+
+    const { genre, ...rest } = formData; // destructure genre out separately
+
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch("http://localhost:5000/book/save", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...rest,
+          price: parseFloat(formData.price),
+          category: formData.genre,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+
+        toast.error("Failed to add book");
+      }
+
+      toast.success("A new book added");
+      onClose();
+    } catch (err: any) {
+      // setError(err.message || "Something went wrong");
+      toast.error("Failed to add book");
+    } finally {
+      // setLoading(false);
+    }
   };
 
   return (
@@ -129,6 +163,22 @@ const AddBookForm: React.FC<AddBookFormProps> = ({ onClose }) => {
                 required
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-white font-medium mb-2">Rating</label>
+            <input
+              type="number"
+              name="rating"
+              value={formData.rating}
+              onChange={handleInputChange}
+              min="0"
+              max="5"
+              step="0.1"
+              className="w-full bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder="0.0 - 5.0"
+              required
+            />
           </div>
 
           <div>
