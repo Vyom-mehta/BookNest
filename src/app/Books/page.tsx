@@ -130,7 +130,7 @@ const BookPage: React.FC = () => {
           <div className="flex items-center justify-center gap-6 mt-6 text-[#4F200D]/70">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5" />
-              <span>{books.length} Books Available</span>
+              <span>{filteredBooks.length} Books Available</span>
             </div>
             <div className="w-1 h-1 bg-[#FFD93D] rounded-full"></div>
             <span>{filteredBooks.length} Currently Shown</span>

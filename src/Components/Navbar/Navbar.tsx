@@ -202,7 +202,7 @@ export default function Navbar() {
 
               {/* User Icon Button */}
               <button
-                onClick={handleUserClick}
+                // onClick={handleUserClick}
                 className="p-2 transition-colors"
                 style={{ color: "#4F200D80" }}
                 onMouseEnter={(e) => (e.target.style.color = "#4F200D")}
@@ -304,7 +304,7 @@ export default function Navbar() {
                     style={{ color: "#4F200D80" }}
                     onMouseEnter={(e) => (e.target.style.color = "#4F200D")}
                     onMouseLeave={(e) => (e.target.style.color = "#4F200D80")}
-                    onClick={handleUserClick}
+                    // onClick={handleUserClick}
                   >
                     <User className="h-5 w-5" />
                     <span>Profile</span>
